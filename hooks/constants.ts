@@ -1,0 +1,132 @@
+import type { GraphState, PaneUi, Prompt } from '../types'
+import type { StashMode } from './types'
+
+export const PANE = 'sc-pane'
+export const TITLE = 'Source Control'
+export const GRAPH_PANE = 'sc-pane-graph'
+export const GRAPH_TITLE = 'Graph'
+export const GRAPH_PAGE = 50
+
+// No terminal prompts (they would hang the call) and no editor for merge commits.
+export const GIT_ENV = { GIT_TERMINAL_PROMPT: '0', GIT_MERGE_AUTOEDIT: 'no' }
+export const NETWORK_TIMEOUT = 120_000
+export const REFRESH_INTERVAL = 5_000
+export const DIFF_BUDGET = 40_000
+export const UNTRACKED_FILE_BUDGET = 4_000
+export const LIST_LIMIT = 50
+export const BRANCH_LIMIT = 200
+export const COMMIT_LIMIT = 20
+// A Select takes 1 to 64 options, and a tree holding more is refused whole: the pane then draws nothing.
+export const SELECT_LIMIT = 64
+
+// Fields split by unit separators, records by record separators, so subjects can hold anything.
+export const COMMIT_FORMAT = '%h%x1f%s%x1f%an%x1f%ae%x1f%cr%x1e'
+export const STASH_FORMAT = '%gd%x1f%gs%x1f%cr%x1e'
+// After git's own lane drawing, so a line holding a commit carries a record after its first unit separator.
+export const GRAPH_FORMAT = '%x1f%h%x1f%p%x1f%D%x1f%s%x1f%an%x1f%ae%x1f%cr'
+
+export const COMMITLINT_CONFIGS = [
+  'commitlint.config.ts',
+  'commitlint.config.js',
+  'commitlint.config.cjs',
+  'commitlint.config.mjs',
+  '.commitlintrc',
+  '.commitlintrc.json',
+  '.commitlintrc.yml',
+  '.commitlintrc.yaml',
+  '.commitlintrc.js',
+  '.commitlintrc.cjs',
+]
+
+// Fixed tones for the SVG icons (an image cannot follow the theme); each reads on light and dark grounds.
+export const TONE = { muted: '#8B9099', green: '#3FA866', amber: '#D9962B', blue: '#5B8DEF' }
+
+export const ICON = {
+  branch:
+    '<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+}
+
+export const CLEAN_BADGE = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="22" fill="${TONE.green}" fill-opacity="0.16"/><path d="M31 16 19 28l-6-6" fill="none" stroke="${TONE.green}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+
+export const MAX_LANES = 24
+// Text colours set by value: each reads on light and dark grounds, and eight stay apart where the theme has fewer.
+export const LANE_TONES = ['#4C8DF6', '#E5A33B', '#3FB27F', '#D9608A', '#9B7BE0', '#2FB5C4', '#E07A4B', '#8AA0B4']
+
+// The box-drawing glyph for a lane by which of its sides carry a line through the row's middle.
+export const GLYPHS: Record<string, string> = {
+  '': ' ',
+  u: '│',
+  d: '│',
+  ud: '│',
+  l: '─',
+  r: '─',
+  lr: '─',
+  ul: '╯',
+  ur: '╰',
+  dl: '╮',
+  dr: '╭',
+  udl: '┤',
+  udr: '├',
+  ulr: '┴',
+  dlr: '┬',
+  udlr: '┼',
+}
+
+// Commit subjects are cut to this many characters so the lanes keep their room; the full text shows on hover.
+export const SUBJECT_CHARS = 60
+
+// Defaults merged under saved state, so a value saved by an earlier version still reads whole.
+export const PANE_UI_START: PaneUi = {
+  collapsed: [],
+  menu: null,
+  confirm: null,
+  branchFilter: null,
+  more: null,
+  prompt: null,
+}
+
+export const GRAPH_START: GraphState = {
+  scope: 'auto',
+  pageSize: GRAPH_PAGE,
+  rows: [],
+  hasMore: false,
+  selected: null,
+  files: null,
+  naming: null,
+  confirm: null,
+}
+
+export const PROMPT_TITLE: Record<Prompt['kind'], string> = {
+  stash: 'Stash',
+  create: 'New branch from the current commit',
+  createFrom: 'New branch from',
+  rename: 'Rename branch',
+  delete: 'Delete branch',
+  forceDelete: 'Delete branch',
+  merge: 'Merge into the current branch',
+}
+
+export const PROMPT_GO: Record<Prompt['kind'], string> = {
+  stash: 'Stash',
+  create: 'Create',
+  createFrom: 'Create',
+  rename: 'Rename',
+  delete: 'Delete',
+  forceDelete: 'Delete anyway',
+  merge: 'Merge',
+}
+
+export const STASH_LABEL: Record<StashMode, string> = {
+  tracked: 'Stash changes',
+  untracked: 'Stash changes and new files',
+  staged: 'Stash staged changes',
+}
+
+export const GRAPH_CONFIRM_LABEL: Record<NonNullable<GraphState['confirm']>, string> = {
+  'cherry-pick': 'Cherry-pick',
+  revert: 'Revert',
+  checkout: 'Check out',
+}
+
+export const NOTHING_TO_COMMIT = 'Nothing to commit: the working tree is clean.'

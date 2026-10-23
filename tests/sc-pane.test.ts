@@ -1,7 +1,9 @@
 import { expect, test } from 'claude-code/testing'
 import type { ProcessRunResult } from 'claude-code'
 
-import { laneCells, layoutLanes, parseGraph, shortSubject } from '../hooks/register'
+import { laneCells, layoutLanes } from '../hooks/helpers/lanes'
+import { parseGraph } from '../hooks/helpers/parse'
+import { shortSubject } from '../hooks/helpers/text'
 
 const PANE = {
   plugin: 'sc-pane',

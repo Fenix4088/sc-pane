@@ -2,6 +2,10 @@
 
 Versions follow [semantic versioning](https://semver.org). Bump `version` in `.claude-plugin/plugin.json` for every release: users only receive an update when it changes.
 
+## Unreleased
+
+- Internal: `hooks/register.tsx` split into modules (constants, types, store, git, helpers, actions, and one container plus components per pane). No change in behaviour.
+
 ## 0.1.0
 
 First public version.

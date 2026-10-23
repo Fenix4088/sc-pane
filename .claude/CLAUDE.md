@@ -1,6 +1,6 @@
 # Source Control mod
 
-A Claude Code function-hooks plugin that adds a VS Code-style Source Control pane and a Git Graph pane. All logic and UI live in `hooks/register.tsx`.
+A Claude Code function-hooks plugin that adds a VS Code-style Source Control pane and a Git Graph pane. `hooks/register.tsx` only wires the hooks; state lives in `hooks/store.ts`, git operations in `hooks/actions/`, pure helpers in `hooks/helpers/` and the panes in `hooks/ui/` (see the file table in the requirements, section 3.1).
 
 ## Requirements
 

@@ -1,6 +1,6 @@
 # Source Control mod: requirements and current state
 
-Version 0.1.0, as of 2026-10-23. This document describes what the mod is for, how it is built, and every behaviour implemented so far, written as requirements another agent can extend or test against. Where this document and the code disagree, the code in `hooks/register.tsx` is authoritative; update this file when behaviour changes.
+Version 0.1.1, as of 2026-10-23. This document describes what the mod is for, how it is built, and every behaviour implemented so far, written as requirements another agent can extend or test against. Where this document and the code disagree, the code under `hooks/` is authoritative; update this file when behaviour changes.
 
 ## 1. Purpose
 
@@ -30,7 +30,17 @@ Out of scope (needs an editor rather than a pane): diff viewer, line-level stagi
 |---|---|
 | `.claude-plugin/plugin.json` | Manifest: name `sc-pane`, `userConfig` options, `types` contract |
 | `hooks/hooks.json` | Names the hooks module: `./register.tsx` |
-| `hooks/register.tsx` | All logic and UI (about 2,500 lines) |
+| `hooks/register.tsx` | Entry point: reads `userConfig` and wires every hook (`on(...)` calls only) |
+| `hooks/constants.ts` | Pane ids, limits, git formats, colours, glyphs, labels, state defaults |
+| `hooks/types.ts` | Module-only types (`Settings`, `Kit`, `LaneRow`, `BranchOption`, …); state types stay in `types/index.d.ts` |
+| `hooks/store.ts` | Declares every `$.state` atom and the only functions that read or write them (`readPaneView`, `readGraphView`, `refresh`, `run`, `setUi`, …) |
+| `hooks/git.ts` | `git()`, `gitOrThrow()`, `failure()`: every git call goes through here |
+| `hooks/repo.ts` | `readRepo()` and `isCurrentRepo()` |
+| `hooks/helpers/` | Pure functions, no `$`: `parse.ts` (git output), `lanes.ts` (graph layout), `branches.ts` (picker options, graph refs), `text.ts`, `view.ts` (colours, icons, `toKit`) |
+| `hooks/actions/` | Git operations by area, each `($, …)`: `files`, `commit`, `message` (Generate), `remote`, `branch`, `stash`, `graph`, `panes` |
+| `hooks/ui/common.tsx` | Components both panes use: `StatusLine`, `Caption`, `FileLine`, `HoverActions`, `ConfirmRow` |
+| `hooks/ui/sourceControl/` | `SourceControlPane.tsx` (container) and its sections: `Header`, `BranchSection`, `CommitSection`, `Changes`, `SectionHeader`, `Stashes`, `CommitList`, `CleanState`, `MoreMenu` |
+| `hooks/ui/graph/` | `GraphPane.tsx` (container), `GraphRow`, `CommitPanel` |
 | `types/index.d.ts` | State contract: every `$.state` value the module reads or writes |
 | `tests/sc-pane.test.ts` | Engine tests with a fake git (15 tests) |
 | `.claude-plugin/types/` | Engine-generated API types; regenerated, never edited |
@@ -55,7 +65,8 @@ Local development: clone the repository and register the clone in `~/.claude/set
 ### 3.2 Runtime model
 
 - The module is a Claude Code function-hooks plugin. It runs in an isolated environment with no DOM and no Node; everything outside goes through `$` (`$.process.run` for git, `$.model.complete` for generation, `$.fs`, `$.ui`, `$.state`, `$.clock`).
-- UI is a tree of engine elements (`Box`, `Text`, `Button`, `Input`, `Select`, `Svg`), resolved per surface with `$.ui.resolve(e)`. Surfaces: `desktop`, `terminal` (also `vscode`, `mobile` with fewer elements; `Input`/`Select` are absent on mobile and the code falls back to text).
+- UI is a tree of engine elements (`Box`, `Text`, `Button`, `Input`, `Select`, `Svg`), resolved per surface with `$.ui.resolve(e)` and handed to components as a `Kit` (`toKit`). Surfaces: `desktop`, `terminal` (also `vscode`, `mobile` with fewer elements; `Input`/`Select` are absent on mobile and the code falls back to text).
+- Each pane has one container (`drawSourceControl`, `drawGraph`) that reads the store, binds every handler to `$` and composes function components. Components receive data, the `Kit` and ready-made handlers, never `$` (NFR-9).
 - All git runs through one helper, `git($, args, init)`, with env `GIT_TERMINAL_PROMPT=0` and `GIT_MERGE_AUTOEDIT=no` (BR-3). Network calls get a 120 s timeout.
 - The engine runs git with repository hooks off. Husky or other hooks never fire from the pane (see FR-COM-6 for the commitlint substitute).
 
@@ -73,7 +84,7 @@ Local development: clone the repository and register the clone in `~/.claude/set
 Rules:
 
 - State outlives a module reload. Every reader tolerates values saved by older versions: `isCurrentRepo()` treats an old-shape `repo` as missing, and `ui`/`graph` are merged over defaults before use.
-- `refresh()` writes `repo` only when it changed (`sameRepo()` compares JSON), so the 5 s timer does not redraw the pane while the user types.
+- `refresh()` writes `repo` only when it changed (it compares the JSON of the old and new read), so the 5 s timer does not redraw the pane while the user types.
 - Render hooks never write state; handlers and other events do.
 
 ### 3.4 Refresh triggers
@@ -227,7 +238,9 @@ IDs are stable; reference them in commits and tests.
 | NFR-6 | Git never prompts: `GIT_TERMINAL_PROMPT=0`, `GIT_MERGE_AUTOEDIT=no`, messages via `-F -` on stdin. | BR-3. |
 | NFR-7 | Do not run repository hook scripts to work around the engine's hooks-off rule. The commitlint check (FR-COM-6) is the only substitute. | Safety rule of the plugin engine. |
 | NFR-8 | Readers tolerate state saved by older versions (section 3.3). | State outlives reloads. |
-| NFR-9 | Functions the validator follows must be top-level declarations; `$` is passed only to top-level functions. | `claude plugin validate` refuses otherwise. |
+| NFR-9 | Functions the validator follows must be top-level declarations; `$` is passed only to top-level functions, never put in an object, a JSX prop or a spread. | `claude plugin validate` refuses otherwise. |
+| NFR-10 | A state atom is read and written only in the file that declares it: all atoms live in `hooks/store.ts`, and other files call its functions. | The validator cannot follow an atom imported from another file and refuses the `read`/`update`. |
+| NFR-11 | No variable or parameter other than the register argument is named `on`; handler bundles are named `actions`. | Precaution, not tested: the validator expects `on` only as `on("<event>", hook)`. |
 
 ## 7. Testing and verification
 
@@ -258,6 +271,8 @@ Current tests (all pass, each loops over the desktop and terminal surfaces where
 13. with more branches than a picker holds, lists the recent ones and searches the rest
 14. lists local and remote branches and switches between them
 15. /sc-pane opens the pane and /sc-pane-graph the graph
+
+Pure helpers are imported in tests from their modules (`hooks/helpers/lanes`, `parse`, `text`), not from `register.tsx`.
 
 Test pattern: `fakeGit(calls, statusText, { stashes, isPushed })` answers each git subcommand and records calls; `ran(calls, command)` returns the arguments of the commands the pane ran, minus the reads made on every refresh. Pane state persists between mounts within one test, so reset anything a test changes (for example the graph scope) before the next surface.
 

@@ -1,0 +1,23 @@
+{
+  "name": "sc-pane",
+  "version": "0.1.0",
+  "description": "A Source Control pane: staged and unstaged changes, commit, push, pull, and a button that has Claude write the commit message from the diff",
+  "author": { "name": "ypliasov" },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "model": {
+      "type": "string",
+      "title": "Commit message model",
+      "description": "Model that writes generated commit messages",
+      "default": "haiku",
+      "options": ["haiku", "sonnet", "opus"]
+    },
+    "includeBody": {
+      "type": "boolean",
+      "title": "Generate a message body",
+      "description": "Add a short body under the subject line when the change is not trivial",
+      "default": true
+    }
+  }
+}

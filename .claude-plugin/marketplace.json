@@ -1,0 +1,12 @@
+{
+  "name": "ypliasov-mods",
+  "owner": { "name": "ypliasov" },
+  "description": "Source Control and Git Graph panes for Claude Code",
+  "plugins": [
+    {
+      "name": "sc-pane",
+      "source": "./",
+      "description": "A Source Control pane: staged and unstaged changes, commit, push, pull, and a button that has Claude write the commit message from the diff"
+    }
+  ]
+}

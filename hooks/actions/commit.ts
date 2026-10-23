@@ -38,7 +38,11 @@ async function commitlint($: EngineInterface, root: string, message: string): Pr
   }
 }
 
-export async function commit($: EngineInterface): Promise<string> {
+// `auto` commits what is staged, or everything when nothing is; `staged` and `all` are the commit menu's
+// Commit staged and Commit all (FR-COM-4).
+export type CommitMode = 'auto' | 'staged' | 'all'
+
+export async function commit($: EngineInterface, mode: CommitMode = 'auto'): Promise<string> {
   const draft = await readDraft($)
   const message = messageOf(draft)
   if (!message) throw new Error('Write a message or press Generate first.')
@@ -46,12 +50,14 @@ export async function commit($: EngineInterface): Promise<string> {
   const repo = await requireRepo($)
   if (repo.conflicts > 0) throw new Error('Resolve the merge conflicts first.')
   if (repo.staged.length === 0 && repo.unstaged.length === 0) throw new Error('Nothing to commit.')
+  if (mode === 'staged' && repo.staged.length === 0) throw new Error('Nothing is staged: stage files with +, or use Commit all.')
 
   const lint = await commitlint($, repo.root, message)
   if (lint) throw new Error(lint)
 
   const cwd = repo.root
-  if (repo.staged.length === 0) await gitOrThrow($, ['add', '-A'], { cwd })
+  const stagesAll = mode === 'all' ? repo.unstaged.length > 0 : mode === 'auto' && repo.staged.length === 0
+  if (stagesAll) await gitOrThrow($, ['add', '-A'], { cwd })
   await gitOrThrow($, ['commit', '-F', '-'], { cwd, stdin: message })
 
   const sha = (await git($, ['rev-parse', '--short', 'HEAD'], { cwd })).stdout.trim()
@@ -61,8 +67,8 @@ export async function commit($: EngineInterface): Promise<string> {
   return `Committed ${sha}: ${draft.subject.trim()}`
 }
 
-export async function commitWithNotice($: EngineInterface) {
-  await setNotice($, 'ok', await commit($))
+export async function commitWithNotice($: EngineInterface, mode: CommitMode = 'auto') {
+  await setNotice($, 'ok', await commit($, mode))
 }
 
 export async function commitAndPush($: EngineInterface) {

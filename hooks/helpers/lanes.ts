@@ -49,8 +49,36 @@ export function layoutLanes(commits: GraphCommit[]): LaneRow[] {
     while (after.length > 0 && after[after.length - 1] === null) after.pop()
     waiting = after
 
-    return { hash: commit.hash, col, isMerge: others.length > 0, segments, width: Math.max(before.length, after.length, col + 1) }
+    return {
+      hash: commit.hash,
+      col,
+      isMerge: others.length > 0,
+      isHead: commit.refs.some(ref => ref === 'HEAD' || ref.startsWith('HEAD →')),
+      segments,
+      width: Math.max(before.length, after.length, col + 1),
+    }
   })
+}
+
+// The lanes whose line leaves the row downwards: what the open commit's panel under it carries on drawing.
+export function lanesBelow(row: LaneRow): number[] {
+  const lanes = row.segments.flatMap(segment =>
+    segment.half === 'full' ? [segment.from] : segment.half === 'bottom' ? [segment.to] : [],
+  )
+
+  return [...new Set(lanes)].sort((a, b) => a - b)
+}
+
+// The lane block of one line of the open commit's panel: a straight line on each lane that carries on below.
+export function continuingCells(row: LaneRow, lanes: number): LaneCell[] {
+  const below = new Set(lanesBelow(row))
+
+  return Array.from({ length: Math.min(lanes, MAX_LANES) }, (_, lane) => ({
+    glyph: below.has(lane) ? '│' : ' ',
+    glyphLane: lane,
+    joint: ' ',
+    jointLane: lane,
+  }))
 }
 
 export function laneTone(lane: number): string {
@@ -102,7 +130,7 @@ export function laneCells(row: LaneRow, lanes: number): LaneCell[] {
 
   return cells.map((at, lane) => {
     const key = `${at.up ? 'u' : ''}${at.down ? 'd' : ''}${at.left ? 'l' : ''}${at.right ? 'r' : ''}`
-    const glyph = lane === row.col ? (row.isMerge ? '○' : '●') : (GLYPHS[key] ?? ' ')
+    const glyph = lane === row.col ? (row.isHead ? '○' : '●') : (GLYPHS[key] ?? ' ')
     const glyphLane = lane === row.col ? row.col : at.upright >= 0 ? at.upright : at.across
 
     return { glyph, glyphLane: Math.max(glyphLane, 0), joint: at.right ? '─' : ' ', jointLane: Math.max(at.across, 0) }

@@ -3,7 +3,7 @@ import type { EngineInterface } from 'claude-code'
 import type { Commit, LastCommit, Repo } from '../types'
 import { COMMIT_FORMAT, COMMIT_LIMIT, STASH_FORMAT } from './constants'
 import { failure, git, userEmail } from './git'
-import { parseBranches, parseCommits, parseNumstat, parseStashes, parseStatus, withCounts } from './helpers/parse'
+import { parseBranches, parseCommits, parseStashes, parseStatus } from './helpers/parse'
 
 // One full read of the repository (FR-READ-*), or null outside a git repository.
 export async function readRepo($: EngineInterface): Promise<Repo | null> {
@@ -16,10 +16,8 @@ export async function readRepo($: EngineInterface): Promise<Repo | null> {
   if (status.exitCode !== 0) throw new Error(failure(status))
 
   const parsed = parseStatus(status.stdout)
-  const [refs, worktree, index, stashes, originHead, head, pushedTo] = await Promise.all([
+  const [refs, stashes, originHead, head, pushedTo] = await Promise.all([
     git($, ['for-each-ref', '--sort=-committerdate', '--format=%(refname)', 'refs/heads', 'refs/remotes'], { cwd }),
-    git($, ['diff', '--numstat', '-z'], { cwd }),
-    git($, ['diff', '--cached', '--numstat', '-z'], { cwd }),
     git($, ['stash', 'list', `--format=${STASH_FORMAT}`], { cwd }),
     git($, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], { cwd }),
     git($, ['log', '-1', '--format=%h%x1f%s'], { cwd }),
@@ -50,8 +48,6 @@ export async function readRepo($: EngineInterface): Promise<Repo | null> {
   return {
     root,
     ...parsed,
-    staged: withCounts(parsed.staged, parseNumstat(index.stdout)),
-    unstaged: withCounts(parsed.unstaged, parseNumstat(worktree.stdout)),
     branches: parseBranches(refs.stdout, parsed.branch),
     incoming,
     outgoing,

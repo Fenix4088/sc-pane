@@ -1,15 +1,18 @@
 import type { EngineInterface } from 'claude-code'
 
-import { GRAPH_PANE, PANE, TITLE } from '../constants'
-import { isBusy, refresh } from '../store'
-import { openGraph, refreshGraph } from './graph'
+import type { PaneUi } from '../../types'
+import { PANE, TITLE } from '../constants'
+import { isBusy, readTab, refresh, setUi } from '../store'
+import { refreshGraph } from './graph'
 
-export function openPane($: EngineInterface) {
+// One pane with two tabs, Source Control and Graph (FR-PANE-1, FR-PANE-2).
+export async function openPane($: EngineInterface, tab: PaneUi['tab'] = 'changes') {
+  await setUi($, { tab })
   return $.ui.open({ id: PANE, title: TITLE })
 }
 
-export async function isPaneOpen($: EngineInterface, id: string): Promise<boolean> {
-  return (await $.ui.panes()).some(pane => pane.id === id)
+export async function isPaneOpen($: EngineInterface): Promise<boolean> {
+  return (await $.ui.panes()).some(pane => pane.id === PANE)
 }
 
 export async function runPaneCommand($: EngineInterface) {
@@ -21,7 +24,8 @@ export async function runPaneCommand($: EngineInterface) {
 
 export async function runGraphCommand($: EngineInterface) {
   await refresh($).catch(() => null)
-  await openGraph($).catch(() => undefined)
+  await openPane($, 'graph')
+  await refreshGraph($).catch(() => undefined)
 
   return { text: 'Commit graph opened.' }
 }
@@ -31,17 +35,18 @@ export function commandFailed() {
   return { text: 'Could not open the pane. Run the command again, or press ↻ in the pane if it opened.' }
 }
 
-// Picks up edits made outside the session (an editor, a terminal) while a pane is open.
+// Picks up edits made outside the session (an editor, a terminal) while the pane is open.
 export async function refreshOpenPanes($: EngineInterface) {
   if (await isBusy($)) return
+  if (!(await isPaneOpen($))) return
 
-  const panes = await $.ui.panes()
-  if (panes.some(pane => pane.id === PANE || pane.id === GRAPH_PANE)) await refresh($)
-  if (panes.some(pane => pane.id === GRAPH_PANE)) await refreshGraph($)
+  await refresh($)
+  if ((await readTab($)) === 'graph') await refreshGraph($)
 }
 
-// After Claude's turn: the files may have changed under the panes.
+// After Claude's turn: the files may have changed under the pane.
 export async function refreshAfterTurn($: EngineInterface) {
   await refresh($).catch(() => null)
-  if (await isPaneOpen($, GRAPH_PANE).catch(() => false)) await refreshGraph($).catch(() => undefined)
+  const isGraphShown = (await isPaneOpen($).catch(() => false)) && (await readTab($)) === 'graph'
+  if (isGraphShown) await refreshGraph($).catch(() => undefined)
 }

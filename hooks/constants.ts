@@ -3,8 +3,6 @@ import type { StashMode } from './types'
 
 export const PANE = 'sc-pane'
 export const TITLE = 'Source Control'
-export const GRAPH_PANE = 'sc-pane-graph'
-export const GRAPH_TITLE = 'Graph'
 export const GRAPH_PAGE = 50
 
 // No terminal prompts (they would hang the call) and no editor for merge commits.
@@ -39,19 +37,28 @@ export const COMMITLINT_CONFIGS = [
 ]
 
 // Fixed tones for the SVG icons (an image cannot follow the theme); each reads on light and dark grounds.
-export const TONE = { muted: '#8B9099', green: '#3FA866', amber: '#D9962B', blue: '#5B8DEF' }
+export const TONE = { muted: '#8A8A8A', green: '#3FA866' }
 
+// The design's icons on a 24-unit grid, drawn by `svg()` where the surface has Svg.
 export const ICON = {
   branch:
-    '<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
-  check: '<path d="M20 6 9 17l-5-5"/>',
+    '<circle cx="6.75" cy="5.25" r="2.25"/><circle cx="6.75" cy="18.75" r="2.25"/><circle cx="17.25" cy="7.5" r="2.25"/><path d="M6.75 7.5v9M17.25 9.75c0 4.5-10.5 3.75-10.5 6.75"/>',
+  check: '<path d="M4.5 12.75l4.5 4.5 10.5-10.5"/>',
+  file: '<path d="M6 2.25h7.5l4.5 4.5v15H6z"/><path d="M13.5 2.25v4.5H18"/>',
+  folder:
+    '<path d="M2.25 6.75a1.5 1.5 0 0 1 1.5-1.5H9l2.25 2.25h9a1.5 1.5 0 0 1 1.5 1.5v9.75a1.5 1.5 0 0 1-1.5 1.5H3.75a1.5 1.5 0 0 1-1.5-1.5z"/>',
 }
 
-export const CLEAN_BADGE = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="22" fill="${TONE.green}" fill-opacity="0.16"/><path d="M31 16 19 28l-6-6" fill="none" stroke="${TONE.green}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+// Grounds for the current tab, count pills, hash chips and the open commit, desktop only: translucent, so they
+// sit on light and dark themes alike. The terminal draws those parts without a ground.
+export const TINT = { neutral: '#8A8A8A33', selected: '#5AA2FF1F' }
+// The text on a filled ref pill, dark on every lane tone.
+export const ON_TONE = '#141414'
 
 export const MAX_LANES = 24
 // Text colours set by value: each reads on light and dark grounds, and eight stay apart where the theme has fewer.
-export const LANE_TONES = ['#4C8DF6', '#E5A33B', '#3FB27F', '#D9608A', '#9B7BE0', '#2FB5C4', '#E07A4B', '#8AA0B4']
+// The first two are the design's blue and orange.
+export const LANE_TONES = ['#5AA2FF', '#F0A04B', '#3FB27F', '#D9608A', '#9B7BE0', '#2FB5C4', '#E07A4B', '#8AA0B4']
 
 // The box-drawing glyph for a lane by which of its sides carry a line through the row's middle.
 export const GLYPHS: Record<string, string> = {
@@ -73,11 +80,18 @@ export const GLYPHS: Record<string, string> = {
   udlr: '┼',
 }
 
-// Commit subjects are cut to this many characters so the lanes keep their room; the full text shows on hover.
+// Commit subjects are cut to this many characters at most so the lanes keep their room; the open commit shows it all.
 export const SUBJECT_CHARS = 60
+// The subject length the message box counts towards, as git's own tools suggest.
+export const SUBJECT_LIMIT = 72
+
+// The busy label of Generate, drawn under the message box instead of in the status line.
+export const GENERATING = 'Writing a message from your diff…'
 
 // Defaults merged under saved state, so a value saved by an earlier version still reads whole.
 export const PANE_UI_START: PaneUi = {
+  tab: 'changes',
+  view: 'list',
   collapsed: [],
   menu: null,
   confirm: null,
@@ -95,12 +109,13 @@ export const GRAPH_START: GraphState = {
   files: null,
   naming: null,
   confirm: null,
+  copied: null,
 }
 
 export const PROMPT_TITLE: Record<Prompt['kind'], string> = {
   stash: 'Stash',
   create: 'New branch from the current commit',
-  createFrom: 'New branch from',
+  createFrom: 'New branch from…',
   rename: 'Rename branch',
   delete: 'Delete branch',
   forceDelete: 'Delete branch',
@@ -118,9 +133,9 @@ export const PROMPT_GO: Record<Prompt['kind'], string> = {
 }
 
 export const STASH_LABEL: Record<StashMode, string> = {
-  tracked: 'Stash changes',
-  untracked: 'Stash changes and new files',
-  staged: 'Stash staged changes',
+  tracked: 'Stash tracked changes',
+  untracked: 'Stash all changes',
+  staged: 'Stash staged only',
 }
 
 export const GRAPH_CONFIRM_LABEL: Record<NonNullable<GraphState['confirm']>, string> = {

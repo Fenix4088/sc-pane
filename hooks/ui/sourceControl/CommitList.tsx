@@ -24,14 +24,14 @@ export function CommitList(props: Props) {
       <SectionHeader kit={props.kit} id={id} title={props.title} count={props.count} isOpen={props.isOpen} onToggle={props.onToggle} />
       {props.isOpen &&
         commits.map(one => (
-          <Box key={`${id}:${one.hash}`} flexDirection="row" gap="sm" paddingLeft={2}>
+          <Box key={`${id}:${one.hash}`} flexDirection="row" gap="sm" alignItems="center" paddingLeft={2}>
             <Text color={direction === 'in' ? 'suggestion' : 'warning'}>{direction === 'in' ? '↓' : '↑'}</Text>
-            <Box flexDirection="column" flexShrink={1}>
+            <Box flexGrow={1} flexShrink={1}>
               <Text wrap="truncate-end">{one.subject}</Text>
-              <Text size="footnote" dimColor>
-                <Text mono>{one.hash}</Text> · {one.author} · {one.when}
-              </Text>
             </Box>
+            <Text size="footnote" dimColor wrap="truncate-end">
+              <Text mono>{one.hash}</Text> · {one.author} · {one.when}
+            </Text>
           </Box>
         ))}
     </Box>

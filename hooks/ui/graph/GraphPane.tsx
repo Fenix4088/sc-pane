@@ -1,6 +1,6 @@
-// The Graph pane's container: reads the store, binds handlers to `$`, draws the scope picker, the open
-// commit and the rows (FR-GR-*). Components below it never receive `$`.
-import type { EngineInterface, RenderSurface } from 'claude-code'
+// The Graph tab's container: reads the store, binds handlers to `$`, draws the scope picker and the rows,
+// with the selected commit opened under its row (FR-GR-*). Components below it never receive `$`.
+import type { EngineInterface } from 'claude-code'
 
 import type { GraphCommit, GraphState } from '../../../types'
 import {
@@ -15,16 +15,16 @@ import {
   setGraphScope,
 } from '../../actions/graph'
 import { MAX_LANES } from '../../constants'
-import { graphScopeOptions } from '../../helpers/branches'
+import { graphScopeOptions, refPills, remoteNames } from '../../helpers/branches'
 import { layoutLanes } from '../../helpers/lanes'
 import { errorText } from '../../helpers/text'
-import { readGraphView, run, setGraph, setNotice } from '../../store'
+import { clearNotice, readGraphView, run, setGraph, setNotice, setUi } from '../../store'
 import type { Kit } from '../../types'
-import { StatusLine } from '../common'
+import { TopBar, Toast, type TabActions } from '../common'
 import { CommitPanel, type CommitPanelActions } from './CommitPanel'
 import { GraphRow } from './GraphRow'
 
-export async function drawGraph($: EngineInterface, kit: Kit, surface: RenderSurface) {
+export async function drawGraph($: EngineInterface, kit: Kit, columns: number) {
   const { Box, Text, Button, Select } = kit
   const { stored, repo, graph, busy, notice } = await readGraphView($)
 
@@ -36,19 +36,22 @@ export async function drawGraph($: EngineInterface, kit: Kit, surface: RenderSur
     void action().catch(error => setNotice($, 'error', errorText(error)))
   }
   const edit = (change: Partial<GraphState>) => quietly(() => setGraph($, change))
+  const reread = act('Reading history…', () => refreshGraph($))
 
-  const refreshButton = (
-    <Button key="graph-refresh" label="↻" plain dimColor onPress={act('Reading history…', () => refreshGraph($))} />
+  const tabs: TabActions = { showChanges: () => void setUi($, { tab: 'changes' }), showGraph: reread }
+  const topBar = (
+    <TopBar kit={kit} tab="graph" actions={tabs}>
+      <Button key="graph-refresh" label="↻" plain dimColor hotkey="r" onPress={reread} />
+    </TopBar>
   )
+  const toast = <Toast kit={kit} busy={busy} notice={notice} onDismiss={() => void clearNotice($)} />
 
   if (!repo) {
     return (
       <Box flexDirection="column" gap="md">
-        <StatusLine kit={kit} busy={busy} notice={notice} />
-        <Box flexDirection="row" gap="sm" alignItems="center">
-          <Text dimColor>{stored ? 'Reading the repository…' : 'This folder is not a git repository.'}</Text>
-          {refreshButton}
-        </Box>
+        {topBar}
+        {toast}
+        <Text dimColor>{stored ? 'Reading the repository…' : 'This folder is not a git repository.'}</Text>
       </Box>
     )
   }
@@ -58,13 +61,9 @@ export async function drawGraph($: EngineInterface, kit: Kit, surface: RenderSur
   const pickScope = (value: string) => {
     if (value !== 'more') quietly(() => setGraphScope($, value))()
   }
-
-  const incoming = new Set(repo.incoming.map(one => one.hash))
-  const outgoing = new Set(repo.outgoing.map(one => one.hash))
   const select = (hash: string) => quietly(() => selectCommit($, hash))
 
   const panelActions = (commit: GraphCommit): CommitPanelActions => ({
-    close: select(commit.hash),
     startNaming: edit({ naming: '', confirm: null }),
     editName: value => void setGraph($, { naming: value }),
     createBranch: name => act('Creating the branch…', () => branchAtCommit($, commit, name)),
@@ -81,42 +80,61 @@ export async function drawGraph($: EngineInterface, kit: Kit, surface: RenderSur
   })
 
   const commits = graph.rows.flatMap(row => (row.commit ? [row.commit] : []))
-  const selected = commits.find(commit => commit.hash === graph.selected) ?? null
   const laid = layoutLanes(commits)
   // Every row's lane block is as wide as the widest, so messages start in one column.
   const lanes = Math.min(MAX_LANES, Math.max(1, ...laid.map(row => row.width)))
+  const remotes = remoteNames(repo)
+  const count = `${commits.length}${graph.hasMore ? '+' : ''} commit${commits.length === 1 ? '' : 's'}`
 
   return (
-    <Box flexDirection="column" gap="sm">
+    <Box flexDirection="column" gap="md">
+      {topBar}
       <Box flexDirection="row" gap="sm" alignItems="center" justifyContent="space-between">
         {Select ? (
           <Select key="graph-scope" options={scopeOptions} value={scope} onSelect={pickScope} />
         ) : (
           <Text dimColor>{scopeOptions.find(option => option.value === scope)?.label}</Text>
         )}
-        {refreshButton}
+        <Text size="footnote" dimColor>
+          {count}
+        </Text>
       </Box>
-      <StatusLine kit={kit} busy={busy} notice={notice} />
-      {selected && (
-        <CommitPanel kit={kit} commit={selected} branch={repo.branch} graph={graph} actions={panelActions(selected)} />
-      )}
-      {graph.rows.length === 0 ? (
+      {toast}
+      {commits.length === 0 ? (
         <Text dimColor>No commits yet.</Text>
       ) : (
         <Box flexDirection="column">
-          {commits.map((commit, index) => (
-            <GraphRow
-              kit={kit}
-              commit={commit}
-              lane={laid[index]}
-              lanes={lanes}
-              isSelected={selected?.hash === commit.hash}
-              isIncoming={incoming.has(commit.hash)}
-              isOutgoing={outgoing.has(commit.hash)}
-              canHover={surface === 'desktop'}
-              onSelect={select(commit.hash)}
-            />
-          ))}
+          {commits.flatMap((commit, index) => {
+            const isSelected = graph.selected === commit.hash
+            const row = (
+              <GraphRow
+                kit={kit}
+                commit={commit}
+                lane={laid[index]}
+                lanes={lanes}
+                pills={refPills(commit.refs, remotes)}
+                columns={columns}
+                isSelected={isSelected}
+                onSelect={select(commit.hash)}
+              />
+            )
+
+            return isSelected
+              ? [
+                  row,
+                  <CommitPanel
+                    kit={kit}
+                    commit={commit}
+                    lane={laid[index]}
+                    lanes={lanes}
+                    columns={columns}
+                    branch={repo.branch}
+                    graph={graph}
+                    actions={panelActions(commit)}
+                  />,
+                ]
+              : [row]
+          })}
         </Box>
       )}
       {graph.hasMore && (

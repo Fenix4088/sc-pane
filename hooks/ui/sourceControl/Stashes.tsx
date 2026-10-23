@@ -1,8 +1,8 @@
-// STASHES with Apply, Pop and Drop per row; Drop asks first (FR-STA-3).
+// STASHES with Apply, Pop and Drop per row; Drop asks first, in the pane's question card (FR-STA-3).
 import type { Stash } from '../../../types'
 import { LIST_LIMIT } from '../../constants'
 import type { Kit, OnPress } from '../../types'
-import { ConfirmRow, HoverActions } from '../common'
+import { HoverActions } from '../common'
 import { SectionHeader } from './SectionHeader'
 
 export type StashActions = {
@@ -10,18 +10,9 @@ export type StashActions = {
   apply: (stash: Stash) => OnPress
   pop: (stash: Stash) => OnPress
   askDrop: (stash: Stash) => OnPress
-  drop: (stash: Stash) => OnPress
-  cancel: OnPress
 }
 
-type Props = {
-  kit: Kit
-  stashes: Stash[]
-  isOpen: boolean
-  confirm: string | null
-  revealOnHover: boolean
-  actions: StashActions
-}
+type Props = { kit: Kit; stashes: Stash[]; isOpen: boolean; actions: StashActions }
 
 export function Stashes(props: Props) {
   const { Box } = props.kit
@@ -48,36 +39,21 @@ function StashRow(props: Props & { stash: Stash }) {
   const { stash: one, actions } = props
 
   return (
-    <Box key={`stash:${one.index}`} flexDirection="column">
-      <Box flexDirection="row" gap="sm" alignItems="center" paddingLeft={2}>
-        <Text mono size="footnote" dimColor>
-          {one.ref}
-        </Text>
-        <Box flexGrow={1} flexShrink={1}>
-          <Text wrap="truncate-end">{one.message}</Text>
-        </Box>
-        <Text size="footnote" dimColor>
-          {one.branch ? `on ${one.branch} · ` : ''}
-          {one.when}
-        </Text>
-        <HoverActions kit={props.kit} revealOnHover={props.revealOnHover}>
-          <Button key={`stash-apply:${one.index}`} label="Apply" plain dimColor onPress={actions.apply(one)} />
-          <Button key={`stash-pop:${one.index}`} label="Pop" plain dimColor onPress={actions.pop(one)} />
-          <Button key={`stash-drop:${one.index}`} label="Drop" plain dimColor onPress={actions.askDrop(one)} />
-        </HoverActions>
+    <Box key={`stash:${one.index}`} flexDirection="row" gap="sm" alignItems="center" paddingLeft={2}>
+      <Text mono size="footnote" dimColor>
+        {one.ref}
+      </Text>
+      <Box flexGrow={1} flexShrink={1}>
+        <Text wrap="truncate-end">{one.message}</Text>
       </Box>
-      {props.confirm === `stash:${one.index}` && (
-        <ConfirmRow
-          kit={props.kit}
-          text={`Drop ${one.ref} “${one.message}”? This cannot be undone.`}
-          confirmKey={`stash-confirm:${one.index}`}
-          cancelKey={`stash-cancel:${one.index}`}
-          confirmLabel="Drop"
-          onConfirm={actions.drop(one)}
-          onCancel={actions.cancel}
-          paddingLeft={4}
-        />
-      )}
+      <HoverActions kit={props.kit}>
+        <Button key={`stash-apply:${one.index}`} label="Apply" plain dimColor onPress={actions.apply(one)} />
+        <Button key={`stash-pop:${one.index}`} label="Pop" plain dimColor onPress={actions.pop(one)} />
+        <Button key={`stash-drop:${one.index}`} label="Drop" plain dimColor onPress={actions.askDrop(one)} />
+      </HoverActions>
+      <Text size="footnote" dimColor wrap="truncate-end">
+        {one.branch ? `on ${one.branch} · ${one.when}` : one.when}
+      </Text>
     </Box>
   )
 }

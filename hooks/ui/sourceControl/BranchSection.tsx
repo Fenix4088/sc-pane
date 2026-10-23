@@ -1,9 +1,10 @@
-// The branch picker and its search, the sync status line and the remote actions (FR-BR-*, FR-REM-1 to 3).
+// The branch row: the branch picker on the left, the sync state on the right, and the branch search under
+// them while it is open (FR-BR-*, FR-REM-1 to 3).
 import type { Repo } from '../../../types'
 import { ICON, TONE } from '../../constants'
 import { branchOptions, pickerOptions, searchOptions } from '../../helpers/branches'
-import { dot, svg, syncHint, syncLine } from '../../helpers/view'
 import type { Kit, OnPress } from '../../types'
+import { Icon } from '../common'
 
 export type BranchActions = {
   pick: (value: string) => void
@@ -12,34 +13,32 @@ export type BranchActions = {
   publish: OnPress
   fetch: OnPress
   sync: OnPress
-  pull: OnPress
-  push: OnPress
-  toggleSyncMenu: OnPress
 }
 
-type Props = { kit: Kit; repo: Repo; filter: string | null; isSyncMenuOpen: boolean; actions: BranchActions }
+type Props = { kit: Kit; repo: Repo; filter: string | null; actions: BranchActions }
 
 export function BranchSection(props: Props) {
   const { Box } = props.kit
 
   return (
     <Box flexDirection="column" gap="sm">
-      <BranchPicker {...props} />
+      <Box flexDirection="row" gap="sm" alignItems="center" justifyContent="space-between">
+        <BranchPicker {...props} />
+        <SyncState {...props} />
+      </Box>
       <BranchSearch {...props} />
-      <SyncStatus kit={props.kit} repo={props.repo} />
-      <RemoteActions {...props} />
     </Box>
   )
 }
 
 function BranchPicker(props: Props) {
-  const { Box, Text, Select, Svg } = props.kit
+  const { Box, Text, Select } = props.kit
   const { repo, actions } = props
   const picker = pickerOptions(branchOptions(repo))
 
   return (
-    <Box flexDirection="row" gap="sm" alignItems="center">
-      {Svg ? <Svg source={svg(ICON.branch, TONE.muted, 16)} alt="Branch" width={16} height={16} /> : <Text dimColor>⎇</Text>}
+    <Box flexDirection="row" gap="sm" alignItems="center" flexShrink={1}>
+      {props.kit.Svg ? <Icon kit={props.kit} paths={ICON.branch} alt="Branch" size={15} /> : <Text dimColor>⎇</Text>}
       {Select && picker.length > 0 ? (
         <Select
           key="branch"
@@ -48,9 +47,53 @@ function BranchPicker(props: Props) {
           onSelect={actions.pick}
         />
       ) : (
-        <Text weight="medium">{repo.branch}</Text>
+        <Text weight="semibold">{repo.branch}</Text>
       )}
     </Box>
+  )
+}
+
+// Up to date with a fetch button, Sync with its counts, or Publish for a branch with no upstream.
+function SyncState(props: Props) {
+  const { Box, Text, Button } = props.kit
+  const { repo, actions } = props
+
+  if (!repo.upstream) {
+    return (
+      <Box flexDirection="row" gap="sm" alignItems="center" flexShrink={0}>
+        <Text size="footnote" dimColor>
+          Not published
+        </Text>
+        <Button key="publish" hotkey="p" onPress={actions.publish}>
+          ↑ Publish
+        </Button>
+      </Box>
+    )
+  }
+
+  if (repo.ahead === 0 && repo.behind === 0) {
+    return (
+      <Box flexDirection="row" gap="sm" alignItems="center" flexShrink={0}>
+        {props.kit.Svg ? (
+          <Icon kit={props.kit} paths={ICON.check} alt="In sync" tone={TONE.green} />
+        ) : (
+          <Text color="success">✓</Text>
+        )}
+        <Text size="footnote" dimColor>
+          Up to date
+        </Text>
+        <Button key="fetch" label="⤓" plain dimColor hotkey="f" onPress={actions.fetch} />
+      </Box>
+    )
+  }
+
+  return (
+    <Button key="sync" hotkey="s" onPress={actions.sync}>
+      ↻ Sync{' '}
+      <Text dimColor tabular>
+        ↓{repo.behind} ↑{repo.ahead}
+      </Text>
+    </Button>
   )
 }
 
@@ -83,90 +126,6 @@ function BranchSearch(props: Props) {
           No branch matches “{filter}”.
         </Text>
       )}
-    </Box>
-  )
-}
-
-function SyncStatus(props: { kit: Kit; repo: Repo }) {
-  const { Box, Text, Svg } = props.kit
-  const { repo } = props
-  const line = syncLine(repo)
-
-  return (
-    <Box flexDirection="row" gap="sm" alignItems="center">
-      {Svg ? <Svg source={dot(line.dot)} alt="" width={8} height={8} /> : <Text color={line.color}>●</Text>}
-      <Text size="footnote" color={line.color}>
-        {line.text}
-      </Text>
-      {repo.upstream && (
-        <Text mono size="footnote" wrap="truncate-end">
-          {repo.upstream}
-        </Text>
-      )}
-    </Box>
-  )
-}
-
-function RemoteActions(props: Props) {
-  const { Box, Text, Button } = props.kit
-  const { repo, actions } = props
-
-  if (!repo.upstream) {
-    return (
-      <Box flexDirection="row" gap="sm" flexWrap="wrap">
-        <Button key="publish" variant="primary" hotkey="p" onPress={actions.publish}>
-          ↑ Publish branch
-        </Button>
-        <Button key="fetch" hotkey="f" onPress={actions.fetch}>
-          Fetch
-        </Button>
-      </Box>
-    )
-  }
-
-  if (repo.ahead === 0 && repo.behind === 0) {
-    return (
-      <Box flexDirection="row" gap="sm" flexWrap="wrap">
-        <Button key="fetch" hotkey="f" onPress={actions.fetch}>
-          Fetch
-        </Button>
-        <Button key="pull" hotkey="l" onPress={actions.pull}>
-          ↓ Pull <Text dimColor>0</Text>
-        </Button>
-        <Button key="push" hotkey="p" onPress={actions.push}>
-          ↑ Push <Text dimColor>0</Text>
-        </Button>
-      </Box>
-    )
-  }
-
-  return (
-    <Box flexDirection="column" gap="sm">
-      <Box flexDirection="row" gap="sm" flexWrap="wrap">
-        <Button key="sync" variant="primary" hotkey="s" onPress={actions.sync}>
-          ↻ Sync{' '}
-          <Text mono>
-            ↓{repo.behind} ↑{repo.ahead}
-          </Text>
-        </Button>
-        <Button key="fetch" hotkey="f" onPress={actions.fetch}>
-          Fetch
-        </Button>
-        <Button key="sync-menu" label="⋯" onPress={actions.toggleSyncMenu} />
-      </Box>
-      {props.isSyncMenuOpen && (
-        <Box flexDirection="row" gap="sm" flexWrap="wrap">
-          <Button key="pull" hotkey="l" onPress={actions.pull}>
-            ↓ Pull only <Text mono>{repo.behind}</Text>
-          </Button>
-          <Button key="push" hotkey="p" onPress={actions.push}>
-            ↑ Push only <Text mono>{repo.ahead}</Text>
-          </Button>
-        </Box>
-      )}
-      <Text size="footnote" dimColor>
-        {syncHint(repo)}
-      </Text>
     </Box>
   )
 }

@@ -1,6 +1,8 @@
 import type { Kit, OnPress } from '../../types'
+import { CountPill, HoverActions } from '../common'
 
-// A collapsible section's title row: ▾/▸, the title, its count, and the section's actions on the right.
+// A collapsible section's title row: ▾/▸ and the title, its count in a pill, and the section's actions on the
+// right, revealed on hover where the pointer is reported.
 export function SectionHeader(props: {
   kit: Kit
   id: string
@@ -10,14 +12,21 @@ export function SectionHeader(props: {
   onToggle: OnPress
   actions?: JSX.Element | null
 }) {
-  const { Box, Text, Button } = props.kit
+  const { Box, Button } = props.kit
 
   return (
-    <Box flexDirection="row" justifyContent="space-between" alignItems="center">
-      <Button key={`toggle:${props.id}`} plain dimColor onPress={props.onToggle}>
-        {props.isOpen ? '▾' : '▸'} {props.title.toUpperCase()} <Text mono>{props.count}</Text>
-      </Button>
-      {props.actions ?? <Text> </Text>}
+    <Box key={`section:${props.id}`} flexDirection="row" justifyContent="space-between" alignItems="center">
+      <Box flexDirection="row" gap="sm" alignItems="center">
+        <Button
+          key={`toggle:${props.id}`}
+          label={`${props.isOpen ? '▾' : '▸'} ${props.title.toUpperCase()}`}
+          plain
+          dimColor
+          onPress={props.onToggle}
+        />
+        <CountPill kit={props.kit} count={props.count} />
+      </Box>
+      {props.actions ? <HoverActions kit={props.kit}>{props.actions}</HoverActions> : null}
     </Box>
   )
 }

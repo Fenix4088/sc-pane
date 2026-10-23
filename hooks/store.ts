@@ -83,6 +83,17 @@ export async function setNotice($: EngineInterface, kind: Notice['kind'], text: 
   await update($, noticeState, () => ({ kind, text }))
 }
 
+export async function clearNotice($: EngineInterface) {
+  await update($, noticeState, () => null)
+}
+
+// Which tab the pane shows; read while drawing, it subscribes the pane to tab changes.
+export async function readTab($: EngineInterface): Promise<PaneUi['tab']> {
+  const saved: Partial<PaneUi> = await read($, uiState)
+
+  return saved.tab ?? PANE_UI_START.tab
+}
+
 export async function setUi($: EngineInterface, change: Partial<PaneUi>) {
   await update($, uiState, ui => ({ ...ui, ...change }))
 }

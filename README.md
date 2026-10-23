@@ -1,18 +1,18 @@
 # sc-pane: Source Control for Claude Code
 
-A Source Control pane and a Git Graph pane for Claude Code, modelled on VS Code's Source Control view and the Git Graph extension. Review and stage changes, write or generate a commit message, commit, push, pull, sync, switch and manage branches, stash, and read the commit history as a graph, all without leaving your Claude session.
+A Source Control pane for Claude Code, with a Graph tab, modelled on VS Code's Source Control view and the Git Graph extension. Review and stage changes, write or generate a commit message, commit, push, pull, sync, switch and manage branches, stash, and read the commit history as a graph, all without leaving your Claude session.
 
 It works in the terminal, the Claude desktop app's Code tab and the VS Code extension.
 
 ## Features
 
-- **Changes:** staged and unstaged files with line counts; stage, unstage and discard per file or all at once. Discarding always asks first.
-- **Commit:** commit staged changes or everything, commit and push, commit and sync, amend, and undo the last commit. Amend and undo refuse a commit that is already on a remote.
+- **Changes:** staged and unstaged files as a list or a folder tree; stage, unstage and discard per file, per folder or all at once. Discarding always asks first.
+- **Commit:** a multi-line message box (Enter commits); commit staged changes or everything, commit and push, commit and sync, amend, and undo the last commit. Amend and undo refuse a commit that is already on a remote.
 - **✦ Generate:** Claude writes the commit message from your diff, following your repository's recent commit subjects and its commitlint config if it has one.
 - **Sync:** fetch, pull, push, publish a new branch, and a one-click sync that pulls before it pushes. Incoming and outgoing commits are listed.
 - **Branches:** switch to local or remote branches (with search when there are more than 64), create, create from a base, rename, delete and merge.
 - **Stash:** stash with or without untracked files or only what is staged, then apply, pop or drop.
-- **Graph:** commit history with branch lanes; select a commit to see its files and to create a branch there, cherry-pick, revert, check it out or copy its hash.
+- **Graph:** commit history with branch lanes; open a commit under its row to see its message and files, and to branch there, cherry-pick, revert, check it out or copy its hash.
 - **Commit checks:** if the repository has `@commitlint/cli` installed, messages are checked against its rules before committing.
 
 ## Requirements
@@ -46,10 +46,10 @@ In a git repository the Source Control pane opens when the session starts. You c
 
 | Command | Opens |
 |---|---|
-| `/sc-pane` | The Source Control pane |
-| `/sc-pane-graph` | The Graph pane (also the **Graph** button in the pane header) |
+| `/sc-pane` | The pane on its Source Control tab |
+| `/sc-pane-graph` | The pane on its Graph tab (also the **Graph** tab at the top of the pane) |
 
-Keyboard shortcuts in the pane: `r` refresh, `c` commit, `g` generate a message, `s` sync, `f` fetch, `l` pull, `p` push or publish, `m` the `⋯` menu.
+Keyboard shortcuts in the pane: `r` refresh, `c` commit, `g` generate a message, `s` sync, `f` fetch, `p` publish, `m` the `⋯` menu; with the menu open, `l` pull, `p` push and `f` fetch. Enter in the message box commits.
 
 ## Settings
 

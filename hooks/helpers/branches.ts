@@ -1,7 +1,7 @@
 // Branch lists for the pickers and refs for the graph. Pure: a Repo in, options or arguments out.
 import type { Repo } from '../../types'
 import { GRAPH_FORMAT, SELECT_LIMIT } from '../constants'
-import type { BranchOption } from '../types'
+import type { BranchOption, RefPill } from '../types'
 import { plural } from './text'
 
 // Every branch as a picker option: the checked-out one first, then local, then remote, most recent first.
@@ -48,7 +48,7 @@ export function defaultBase(repo: Repo, all: BranchOption[]): string {
 // Two fixed scopes, then branches to add to the automatic set: 64 options at most.
 export function graphScopeOptions(repo: Repo): BranchOption[] {
   return [
-    { value: 'auto', label: 'Current, upstream and default branch' },
+    { value: 'auto', label: 'Current, upstream & default' },
     { value: 'all', label: 'All branches' },
     ...pickerOptions(
       branchOptions(repo).filter(option => option.value !== 'detached'),
@@ -58,6 +58,37 @@ export function graphScopeOptions(repo: Repo): BranchOption[] {
         ? { value: 'more', label: 'Older branches are not listed: use All branches' }
         : { value: option.value, label: `+ ${option.label}` },
     ),
+  ]
+}
+
+// The remotes a graph ref may start with: origin, and the upstream's remote when it has another name.
+export function remoteNames(repo: Repo): string[] {
+  const upstream = repo.upstream?.split('/')[0]
+
+  return upstream && upstream !== 'origin' ? ['origin', upstream] : ['origin']
+}
+
+// A commit's refs as the graph row labels them: a local branch and the remotes holding the same name share one
+// label (`main ⇄ origin`), the checked-out branch first; then remote branches alone, then tags.
+export function refPills(refs: string[], remotes: string[]): RefPill[] {
+  const head = refs.find(ref => ref.startsWith('HEAD → '))?.slice('HEAD → '.length) ?? null
+  const isRemote = (ref: string) => remotes.some(remote => ref.startsWith(`${remote}/`))
+  const locals = refs.filter(ref => ref !== 'HEAD' && !ref.startsWith('HEAD → ') && !ref.startsWith('tag: ') && !isRemote(ref))
+  const names = head ? [head, ...locals.filter(name => name !== head)] : locals
+  const paired = new Set<string>()
+
+  const pills = names.map(name => {
+    const holders = remotes.filter(remote => refs.includes(`${remote}/${name}`))
+    holders.forEach(remote => paired.add(`${remote}/${name}`))
+
+    return { text: holders.length > 0 ? `${name} ⇄ ${holders.join(', ')}` : name, isHead: name === head }
+  })
+
+  return [
+    ...(refs.includes('HEAD') ? [{ text: 'HEAD', isHead: true }] : []),
+    ...pills,
+    ...refs.filter(ref => isRemote(ref) && !paired.has(ref)).map(ref => ({ text: ref, isHead: false })),
+    ...refs.filter(ref => ref.startsWith('tag: ')).map(ref => ({ text: ref, isHead: false })),
   ]
 }
 

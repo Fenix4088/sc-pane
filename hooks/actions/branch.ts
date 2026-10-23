@@ -50,7 +50,7 @@ export async function deleteBranch($: EngineInterface, name: string, force: bool
   const deleted = await git($, ['branch', force ? '-D' : '-d', name], { cwd: repo.root })
   if (deleted.exitCode !== 0) {
     if (!force && /not fully merged/.test(deleted.stderr)) {
-      await setUi($, { more: 'branch', prompt: { kind: 'forceDelete', text: '', choice: name } })
+      await setUi($, { more: null, prompt: { kind: 'forceDelete', text: '', choice: name } })
       return
     }
     throw new Error(failure(deleted))

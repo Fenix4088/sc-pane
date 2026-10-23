@@ -34,12 +34,15 @@ export type Repo = {
   lastCommit: LastCommit | null
 }
 
+// The message box's text: `subject` is its first line, `body` everything from the first line break on, that
+// break included, so the box's text reads back exactly as typed. A body without a leading break (a generated
+// message, or one saved by an earlier version) is drawn under a blank line.
 export type Draft = { subject: string; body: string }
 
 export type Notice = { kind: 'ok' | 'error'; text: string }
 
-// The ⋯ menu: its row of groups, or one group's commands.
-export type MoreMenu = 'groups' | 'stash' | 'branch' | 'commit' | 'remote'
+// The ⋯ menu: its main list, or the branch commands under Branches….
+export type MoreMenu = 'main' | 'branch'
 
 // An inline form under the menu: what it is for, the text typed, and the stash mode or branch picked.
 export type Prompt = {
@@ -48,11 +51,13 @@ export type Prompt = {
   choice: string
 }
 
-// What the pane shows open: collapsed sections, an open menu, a discard waiting for its confirmation,
-// the branch search's text while it is open, the ⋯ menu and its form.
+// What the pane shows: its tab, the file list as a list or a tree, collapsed sections and folders, the commit
+// menu, a question waiting for its confirmation, the branch search's text while it is open, the ⋯ menu and its form.
 export type PaneUi = {
+  tab: 'changes' | 'graph'
+  view: 'list' | 'tree'
   collapsed: string[]
-  menu: 'commit' | 'sync' | null
+  menu: 'commit' | null
   confirm: string | null
   branchFilter: string | null
   more: MoreMenu | null
@@ -81,6 +86,8 @@ export type GraphState = {
   files: FileChange[] | null
   naming: string | null
   confirm: 'cherry-pick' | 'revert' | 'checkout' | null
+  // The selected commit's hash once Copy put it on the clipboard, so its button reads Copied.
+  copied: string | null
 }
 
 declare module 'claude-code' {

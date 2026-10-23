@@ -1,7 +1,7 @@
 import type { EngineInterface, RenderSurface } from 'claude-code'
 
 import type { FileChange, GraphCommit, Repo } from '../../types'
-import { GRAPH_PAGE, GRAPH_PANE, GRAPH_TITLE } from '../constants'
+import { GRAPH_PAGE } from '../constants'
 import { failure, git, gitOrThrow, isConflict, userEmail } from '../git'
 import { graphArgs } from '../helpers/branches'
 import { parseGraph, parseNameStatus, parseNumstat, withCounts } from '../helpers/parse'
@@ -21,11 +21,6 @@ export async function refreshGraph($: EngineInterface) {
   if (JSON.stringify(rows) !== JSON.stringify(graph.rows) || hasMore !== graph.hasMore) {
     await setGraph($, { rows, hasMore })
   }
-}
-
-export async function openGraph($: EngineInterface) {
-  await $.ui.open({ id: GRAPH_PANE, title: GRAPH_TITLE })
-  await refreshGraph($)
 }
 
 export async function setGraphScope($: EngineInterface, scope: string) {
@@ -57,11 +52,11 @@ async function readCommitFiles($: EngineInterface, repo: Repo, commit: GraphComm
 export async function selectCommit($: EngineInterface, hash: string) {
   const graph = await readGraphState($)
   if (graph.selected === hash) {
-    await setGraph($, { selected: null, files: null, naming: null, confirm: null })
+    await setGraph($, { selected: null, files: null, naming: null, confirm: null, copied: null })
     return
   }
 
-  await setGraph($, { selected: hash, files: null, naming: null, confirm: null })
+  await setGraph($, { selected: hash, files: null, naming: null, confirm: null, copied: null })
   const commit = graph.rows.find(row => row.commit?.hash === hash)?.commit
   const repo = await requireRepo($)
   if (!commit) return
@@ -70,7 +65,7 @@ export async function selectCommit($: EngineInterface, hash: string) {
   if ((await readGraphState($)).selected === hash) await setGraph($, { files })
 }
 
-// A commit action changes the branch, so both panes read again after it (FR-GR-10).
+// A commit action changes the branch, so both tabs read again after it (FR-GR-10).
 async function afterGraphAction($: EngineInterface, text: string) {
   await setGraph($, { confirm: null, naming: null })
   await setNotice($, 'ok', text)
@@ -124,5 +119,7 @@ export async function copyHash($: EngineInterface, commit: GraphCommit, surface:
   const repo = await storedRepo($)
   const full = (repo && (await git($, ['rev-parse', commit.hash], { cwd: repo.root })).stdout.trim()) || commit.hash
   const copied = await $.ui.copy({ text: full, surface })
-  await setNotice($, copied.isCopied ? 'ok' : 'error', copied.isCopied ? `Copied ${full}.` : 'Could not reach the clipboard.')
+  // The button itself says Copied; only a failure needs the status line.
+  if (copied.isCopied) await setGraph($, { copied: commit.hash })
+  else await setNotice($, 'error', 'Could not reach the clipboard.')
 }

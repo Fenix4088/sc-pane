@@ -4,6 +4,12 @@ Versions follow [semantic versioning](https://semver.org). Bump `version` in `.c
 
 ## Unreleased
 
+- Redesign to the `sc-pane redesign` canvas. One pane with **Source Control** and **Graph** tabs replaces the two panes; `/sc-pane-graph` opens the Graph tab.
+- Source Control: branch row with the sync state beside the picker (Up to date and fetch, Sync ↓n ↑m, or Publish); a three-line message box where Enter commits, with a subject counter and ✦ under it; **✓ Commit staged (n)** / **✓ Commit all (n)** with a ▾ commit menu (Commit staged, Commit all, Commit & push, Commit & sync, Amend, Undo); one question card above the list for every confirmation; a ✕ on the status line.
+- Changes can be shown as a folder tree, with whole folders staged or unstaged at once. File rows show the folder and the status letter; line counts are gone, and the two `--numstat` reads per refresh with them.
+- The `⋯` menu is one dropdown: Pull, Push, Fetch, Pull (rebase), Fetch (prune); the stash commands; and Branches… for the branch commands.
+- Graph: rows show ref labels (`main ⇄ origin`, the checked-out branch filled), the subject and a short age; the checked-out commit is hollow; a commit opens under its row with the lanes carried on beside it, its full message, files, Copy, and Check out, Branch here…, Cherry-pick and Revert.
+- Fix: on the terminal the branch ⎇ and the in-sync ✓ now draw (the engine's empty stand-ins for missing elements hid the text fallbacks).
 - Internal: `hooks/register.tsx` split into modules (constants, types, store, git, helpers, actions, and one container plus components per pane). No change in behaviour.
 
 ## 0.1.0

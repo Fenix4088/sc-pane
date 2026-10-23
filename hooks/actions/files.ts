@@ -24,6 +24,15 @@ export async function unstageFile($: EngineInterface, file: FileChange) {
   await gitAction($, ['restore', '--staged', '--', file.path])
 }
 
+// A folder row of the tree view stages or unstages everything under it.
+export async function stageDir($: EngineInterface, dir: string) {
+  await gitAction($, ['add', '--', dir])
+}
+
+export async function unstageDir($: EngineInterface, dir: string) {
+  await gitAction($, ['restore', '--staged', '--', dir])
+}
+
 export async function stageAll($: EngineInterface) {
   await gitAction($, ['add', '-A'])
 }
